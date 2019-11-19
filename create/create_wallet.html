@@ -1,0 +1,191 @@
+<html>
+  <body>
+    <script src="http://code.jquery.com/jquery-1.11.0.min.js"></script>
+    <script src="../dist/lightwallet.min.js"></script>
+    <script src="./FileSaver.js"></script>
+    <script>
+      
+        // ---- GLOBALS ----------------------------------------------------------------------------------------
+        var web3 = new Web3();
+        var global_keystore;
+        const MAX_LEN = 64
+        const entropy = [];
+        let captureStart = false;
+        var passOK = false;
+
+        // Wallet parameters
+        var wpass;
+        var seed;
+        var addr;
+        var priv;
+        var json;
+
+        // ---- FUNCTIONS --------------------------------------------------------------------------------------
+
+        /** 
+         * Mouse Moving Entropy Generator on browser.
+         * Returns an entropy which is 16 bytes long array of unsigned char integer (0-255).
+         */
+        $(document).on("mousemove", "html", function(e) {
+            if (entropy.length >= MAX_LEN) return;
+            const now = Date.now();
+            if (now >= 1 && (now % 5) !== 0) return;
+            if (!captureStart) {
+                return setTimeout(() => {
+                    captureStart = true;
+                }, 1000); // capturing starts in 1 second
+            }
+
+            const pxPlusPy = e.pageX + e.pageY;
+            const ret = Math.round((pxPlusPy * pxPlusPy * 13 % 94 ))+32;
+            entropy.push(ret);
+            var elem = document.getElementById("progress");
+            var pw = (entropy.length *100 )/ MAX_LEN;
+            elem.style.width = pw + "%";
+            
+            // done?
+            if (entropy.length == MAX_LEN && passOK)
+                document.getElementById("newWallet").disabled = false;
+        })
+
+        function checkPassword() {
+            var pass = document.getElementById('password').value;
+            var score = 0;
+            if (!pass)
+                return;
+
+            // award every unique letter until 5 repetitions
+            var letters = new Object();
+            for (var i=0; i<pass.length; i++) {
+                letters[pass[i]] = (letters[pass[i]] || 0) + 1;
+                score += 5.0 / letters[pass[i]];
+            }
+
+            // bonus points for mixing it up
+            var variations = {
+                digits: /\d/.test(pass),
+                lower: /[a-z]/.test(pass),
+                upper: /[A-Z]/.test(pass),
+                nonWords: /\W/.test(pass),
+            }
+
+            variationCount = 0;
+            for (var check in variations) {
+                variationCount += (variations[check] == true) ? 1 : 0;
+            }
+            score += (variationCount - 1) * 10;
+
+            if (score <= 30) {
+                document.getElementById('pwstrength').innerHTML = "Password Strenght = WEAK !!";
+                passOK = false;
+            } else if (score <= 60) {
+                document.getElementById('pwstrength').innerHTML = "Password Strenght = Average !!";
+                passOK = false;
+            } else {
+                document.getElementById('pwstrength').innerHTML = "Password Strenght = Good !!";
+                passOK = true;
+            }
+
+            // done?
+            document.getElementById("newWallet").disabled = !(entropy.length == MAX_LEN && passOK);
+        }
+
+        function saveWalletData () {
+            var text = "Seed : " + seed + "\r\n";
+            text += "Address : " + addr + "\r\n";
+            text += "Private Key : "+priv + "\r\n";
+            text += "Wallet Password : "+wpass+"\r\n";
+
+            var filename = "wallet_data.txt";
+            var blob = new Blob([text], {type: "text/plain;charset=utf-8"});
+            saveAs(blob, filename);
+        }
+
+        function saveWalletJSON () {
+            var date = new Date();
+            var filename = "UTC--"+date.getUTCFullYear()+"-";
+            filename += ("00" + (date.getUTCMonth()+1)).substr(-2,2)+"-";
+            filename += ("00" + date.getUTCDate()).substr(-2,2)+"T";
+            filename += ("00" + date.getUTCHours()).substr(-2,2)+"-";
+            filename += ("00" + date.getUTCMinutes()).substr(-2,2)+"-";
+            filename += ("00" + date.getUTCSeconds()).substr(-2,2)+".";
+            filename += ("96749264" + entropy[47]*entropy[37]*entropy[55]*entropy[2]*entropy[23]*entropy[12]).substr(-9,9)+"Z--"+addr.substr(2); // FAKE !!
+            
+            var blob = new Blob([json], {type: "text/plain;charset=utf-8"});
+            saveAs(blob, filename);
+        }
+
+        function newAddresses() {
+            global_keystore.keyFromPassword(wpass, function (err, pwDerivedKey) {
+                global_keystore.generateNewAddress(pwDerivedKey, 1);
+
+                var addresses = global_keystore.getAddresses();
+                var exc = global_keystore.serialize();
+                var unexc = JSON.parse(exc);
+            
+                addr = addresses[0];
+                priv = global_keystore.exportPrivateKey(addresses[0], pwDerivedKey);
+                json = JSON.stringify(unexc, undefined,4);
+
+                document.getElementById('out_address').innerHTML = "Address : " + addr;
+                document.getElementById('out_priv').innerHTML = "Private key : " + priv;
+                document.getElementById('out_wpass').innerHTML = "Wallet Password : " + wpass;
+                document.getElementById('out_json').innerHTML = "Json : <pre>" + json + "</pre>";
+                document.getElementById('out_saveAs').innerHTML = "<button onclick=\"saveWalletData()\">Save Wallet Data</button>  <button onclick=\"saveWalletJSON()\">Save Wallet JSON</button>";
+            });
+        }
+
+        function newWallet() {
+            // Get parameters
+            wpass = document.getElementById('password').value;
+            var entropyString ="";
+
+            entropy.forEach( (c) => {
+                entropyString += String.fromCharCode(c);
+            });
+            console.log("Entropy : "+ entropyString);
+
+            // Create Random Seed
+            seed = lightwallet.keystore.generateRandomSeed(entropyString);
+            // Show Random Seed
+            document.getElementById('out_seed').innerHTML = "Seed : " + seed;
+
+            // Create Vault
+            lightwallet.keystore.createVault({
+                password: wpass,
+                seedPhrase: seed,
+                //random salt
+                hdPathString: 'm/0\'/0\'/0\''
+            }, function (err, ks) {
+                global_keystore = ks;
+
+                newAddresses();
+            });
+        }
+
+    </script>
+
+
+    <h1>Client Side Wallet Creation</h1>
+    <h2>Create New Wallet</h2>
+    <div>
+        Move the mouse at random in this window until the progress bar is full:<br>
+        <div id="progress-bar" style="width: 80%; align:'center'; height:30px;background-color: #ddd;">
+            <div id="progress" style="width: 1%; height: 30px; background-color: #4CAF50;"></div>
+        </div>
+        <p>
+        Input your password here. Must be at least 12 characters and you MUST write this down and store it safely.<br>
+      <input id="password" placeholder="Type your password here" size="80" type="text" onkeydown="checkPassword()"/>
+      <div id="pwstrength"></div>
+      <p>
+      <button id="newWallet" disabled onclick="newWallet()">Create New Wallet</button>
+    </div>
+    <div id="out_seed"></div>
+    <div id="out_address"></div>
+    <div id="out_priv"></div>
+    <div id="out_wpass"></div>
+    <div id="out_json"></div>
+    <div id="out_saveAs"></div>
+
+  </body>
+</html>

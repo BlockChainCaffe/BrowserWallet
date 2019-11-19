@@ -1,0 +1,158 @@
+<html>
+  <body>
+      <script src="http://code.jquery.com/jquery-1.11.0.min.js"></script>
+      <script src="../dist/lightwallet.min.js"></script>
+      <script src="./FileSaver.js"></script>
+    <script>
+
+      // ---- GLOBALS ----------------------------------------------------------------------------------------
+      var web3 = new Web3();
+      var global_keystore;
+      var passOK = false;
+
+      // Wallet parameters
+      var seedwords;
+      var wpass;
+      var seed;
+      var addr;
+      var priv;
+      var json;
+
+      // ---- FUNCTIONS --------------------------------------------------------------------------------------
+
+      function countWords () {
+        seed = document.getElementById('seed').value.trim();
+        seedwords = seed.split(" ").length;
+        
+        document.getElementById("btn_restore").disabled = !(seedwords == 12 && passOK);
+      }
+
+      function checkPassword() {
+        wpass = document.getElementById('password').value;
+        var score = 0;
+        if (!wpass)
+            return;
+
+        // award every unique letter until 5 repetitions
+        var letters = new Object();
+        for (var i=0; i<wpass.length; i++) {
+            letters[wpass[i]] = (letters[wpass[i]] || 0) + 1;
+            score += 5.0 / letters[wpass[i]];
+        }
+
+        // bonus points for mixing it up
+        var variations = {
+            digits: /\d/.test(wpass),
+            lower: /[a-z]/.test(wpass),
+            upper: /[A-Z]/.test(wpass),
+            nonWords: /\W/.test(wpass),
+        }
+
+        variationCount = 0;
+        for (var check in variations) {
+            variationCount += (variations[check] == true) ? 1 : 0;
+        }
+        score += (variationCount - 1) * 10;
+
+        if (score <= 30) {
+            document.getElementById('pwstrength').innerHTML = "Password Strenght = WEAK !!";
+            passOK = false;
+        } else if (score <= 60) {
+            document.getElementById('pwstrength').innerHTML = "Password Strenght = Average !!";
+            passOK = false;
+        } else {
+            document.getElementById('pwstrength').innerHTML = "Password Strenght = Good !!";
+            passOK = true;
+        }
+
+        // done?
+        document.getElementById("btn_restore").disabled = !(seedwords == 12 && passOK);
+      }
+
+      function saveWalletData () {
+          var text = "Seed : " + seed + "\r\n";
+          text += "Address : " + addr + "\r\n";
+          text += "Private Key : "+priv + "\r\n";
+          text += "Wallet Password : "+wpass+"\r\n";
+
+          var filename = "wallet_data.txt";
+          var blob = new Blob([text], {type: "text/plain;charset=utf-8"});
+          saveAs(blob, filename);
+      }
+
+      function saveWalletJSON () {
+          var date = new Date();
+          var filename = "UTC--"+date.getUTCFullYear()+"-";
+          filename += ("00" + (date.getUTCMonth()+1)).substr(-2,2)+"-";
+          filename += ("00" + date.getUTCDate()).substr(-2,2)+"T";
+          filename += ("00" + date.getUTCHours()).substr(-2,2)+"-";
+          filename += ("00" + date.getUTCMinutes()).substr(-2,2)+"-";
+          filename += ("00" + date.getUTCSeconds()).substr(-2,2)+".";
+          filename += ("" + 96749264 * date.getUTCSeconds()).substr(-9,9)+"Z--"+addr.substr(2); // FAKE !!
+          
+          var blob = new Blob([json], {type: "text/plain;charset=utf-8"});
+          saveAs(blob, filename);
+      }
+
+      function newAddresses() {
+            global_keystore.keyFromPassword(wpass, function (err, pwDerivedKey) {
+                global_keystore.generateNewAddress(pwDerivedKey, 1);
+
+                var addresses = global_keystore.getAddresses();
+                var exc = global_keystore.serialize();
+                var unexc = JSON.parse(exc);
+            
+                addr = addresses[0];
+                priv = global_keystore.exportPrivateKey(addresses[0], pwDerivedKey);
+                json = JSON.stringify(unexc, undefined,4);
+
+                document.getElementById('out_address').innerHTML = "Address : " + addr;
+                document.getElementById('out_priv').innerHTML = "Private key : " + priv;
+                document.getElementById('out_wpass').innerHTML = "Wallet Password : " + wpass;
+                document.getElementById('out_json').innerHTML = "Json : <pre>" + json + "</pre>";
+                document.getElementById('out_saveAs').innerHTML = "<button onclick=\"saveWalletData()\">Save Wallet Data</button>  <button onclick=\"saveWalletJSON()\">Save Wallet JSON</button>";
+            });
+        }
+
+      function setSeed() {
+        seed = seed.trim();
+        console.log("->"+seed+"<-");
+        lightwallet.keystore.createVault({
+          password: wpass,
+          seedPhrase: seed,
+          //random salt
+          hdPathString: 'm/0\'/0\'/0\''
+        }, function (err, ks) {
+          global_keystore = ks;
+          newAddresses();
+        });
+      }
+
+    </script>
+
+
+    <h1>Restore Wallet from Seed</h1>
+
+    <h2>Restore Wallet</h2>
+    <div>
+      Copy here the 12 words of your seed <br>
+      <input id="seed" size="80" type="text" value="" onkeydown="countWords()" onchange="countWords()" onpaste="countWords()"/>
+    </div>
+    <p></p>
+    <div>
+      Input your password here. Must be at least 12 characters and you MUST write this down and store it safely.<br>
+      <input id="password" placeholder="Type your password here" size="80" type="text" onkeydown="checkPassword()"/>
+      <div id="pwstrength">&nbsp;</div>
+    </div>
+    <p></p>
+    <button id="btn_restore" disabled onclick="setSeed()">Restore wallet from Seed</button>
+    <p></p>
+    <div id="out_seed"></div>
+    <div id="out_address"></div>
+    <div id="out_priv"></div>
+    <div id="out_wpass"></div>
+    <div id="out_json"></div>
+    <div id="out_saveAs"></div>
+
+  </body>
+</html>
