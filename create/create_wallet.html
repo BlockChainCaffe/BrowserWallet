@@ -1,8 +1,9 @@
 <html>
   <body>
-    <script src="http://code.jquery.com/jquery-1.11.0.min.js"></script>
-    <script src="../dist/lightwallet.min.js"></script>
-    <script src="./FileSaver.js"></script>
+    <script type="text/javascript" src="http://code.jquery.com/jquery-1.11.0.min.js"></script>
+    <script type="text/javascript" src="../dist/lightwallet.min.js"></script>
+    <script type="text/javascript" src="../dist/FileSaver.js"></script>
+    <script type="text/javascript" src="../dist/qrcode.js"></script>
     <script>
       
         // ---- GLOBALS ----------------------------------------------------------------------------------------
@@ -130,8 +131,9 @@
                 document.getElementById('out_address').innerHTML = "Address : " + addr;
                 document.getElementById('out_priv').innerHTML = "Private key : " + priv;
                 document.getElementById('out_wpass').innerHTML = "Wallet Password : " + wpass;
-                document.getElementById('out_json').innerHTML = "Json : <pre>" + json + "</pre>";
-                document.getElementById('out_saveAs').innerHTML = "<button onclick=\"saveWalletData()\">Save Wallet Data</button>  <button onclick=\"saveWalletJSON()\">Save Wallet JSON</button>";
+                document.getElementById('out_json').innerHTML = "Json : <pre style=\"overflow-x: auto;white-space: pre-wrap;white-space: -moz-pre-wrap;white-space: -pre-wrap;white-space: -o-pre-wrap;word-wrap: break-word;\">" + json + "</pre>";
+                document.getElementById('out_saveAs').innerHTML = "<button onclick=\"saveWalletData()\">Save Wallet Data</button>  <button onclick=\"saveWalletJSON()\">Save Wallet JSON</button><hr>";
+                makeQR();
             });
         }
 
@@ -170,7 +172,7 @@
     <h2>Create New Wallet</h2>
     <div>
         Move the mouse at random in this window until the progress bar is full:<br>
-        <div id="progress-bar" style="width: 80%; align:'center'; height:30px;background-color: #ddd;">
+        <div id="progress-bar" style="width: 80%; height:30px;background-color: #ddd;">
             <div id="progress" style="width: 1%; height: 30px; background-color: #4CAF50;"></div>
         </div>
         <p>
@@ -180,12 +182,35 @@
       <p>
       <button id="newWallet" disabled onclick="newWallet()">Create New Wallet</button>
     </div>
+
+    <hr>
     <div id="out_seed"></div>
     <div id="out_address"></div>
     <div id="out_priv"></div>
     <div id="out_wpass"></div>
     <div id="out_json"></div>
     <div id="out_saveAs"></div>
+
+    <table width="80%" aligh="center" >
+        <tr>
+            <td><div id="pwqr1" style="width:200px; height:200px; margin-top:15px;"></div></td>
+            <td><div id="pwseed"></div></td>
+            <td><div id="pwqr2" style="width:200px; height:200px; margin-top:15px;"></div></td>
+        </tr>
+    </table>
+
+    <script>
+        var qr1 = new QRCode(document.getElementById("pwqr1"), {width : 200,height : 200 });
+        var qr2 = new QRCode(document.getElementById("pwqr2"), {width : 200,height : 200 });
+        
+        function makeQR() {
+            document.getElementById('pwseed').innerHTML = "<b>Address</b> : <br>" + addr +"<p>";
+            document.getElementById('pwseed').innerHTML += "<b>Restore Seed</b> : <br>" + seed +"<p>";
+            document.getElementById('pwseed').innerHTML += "<b>Private key</b> : <br>" + priv;
+            qr1.makeCode(addr);
+            qr2.makeCode(priv);
+        }
+    </script>
 
   </body>
 </html>
