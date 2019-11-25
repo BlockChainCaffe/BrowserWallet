@@ -1,0 +1,22 @@
+<html>
+  <body>
+  <script charset="utf-8" src="../dist/ethers-v4.min.js" type="text/javascript"></script>
+    <script>
+      let entropy = "0xa8td84e39f013"
+      
+      let wallet = ethers.Wallet.createRandom({"extraEntropy": "0xaf00"});
+      let randomMnemonic = wallet.mnemonic;
+      console.log(randomMnemonic);
+      console.log(wallet.privateKey);
+      console.log(wallet.address);
+      let json = wallet.encrypt("password").then( (j) => {console.log(j)});
+
+
+
+
+    </script>
+    <h1> testing with etherjs</h1>
+
+
+  </body>
+</html>

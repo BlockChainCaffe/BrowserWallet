@@ -1,20 +1,21 @@
 <html>
   <body>
     <script type="text/javascript" src="http://code.jquery.com/jquery-1.11.0.min.js"></script>
-    <script type="text/javascript" src="../dist/lightwallet.min.js"></script>
+    <script charset="utf-8" src="../dist/ethers-v4.min.js" type="text/javascript"></script>
     <script type="text/javascript" src="../dist/FileSaver.js"></script>
     <script type="text/javascript" src="../dist/qrcode.js"></script>
+    <script type="text/javascript" src="../dist/web3.min.js"></script>
     <script>
       
         // ---- GLOBALS ----------------------------------------------------------------------------------------
-        var web3 = new Web3();
-        var global_keystore;
-        const MAX_LEN = 64
+      
+        const MAX_LEN = 32;
         const entropy = [];
         let captureStart = false;
         var passOK = false;
 
         // Wallet parameters
+        var wallet;
         var wpass;
         var seed;
         var addr;
@@ -116,55 +117,35 @@
             saveAs(blob, filename);
         }
 
-        function newAddresses() {
-            global_keystore.keyFromPassword(wpass, function (err, pwDerivedKey) {
-                global_keystore.generateNewAddress(pwDerivedKey, 1);
-
-                var addresses = global_keystore.getAddresses();
-                var exc = global_keystore.serialize();
-                var unexc = JSON.parse(exc);
-            
-                addr = addresses[0];
-                priv = global_keystore.exportPrivateKey(addresses[0], pwDerivedKey);
-                json = JSON.stringify(unexc, undefined,4);
-
-                document.getElementById('out_address').innerHTML = "Address : " + addr;
-                document.getElementById('out_priv').innerHTML = "Private key : " + priv;
-                document.getElementById('out_wpass').innerHTML = "Wallet Password : " + wpass;
-                document.getElementById('out_json').innerHTML = "Json : <pre style=\"overflow-x: auto;white-space: pre-wrap;white-space: -moz-pre-wrap;white-space: -pre-wrap;white-space: -o-pre-wrap;word-wrap: break-word;\">" + json + "</pre>";
-                document.getElementById('out_saveAs').innerHTML = "<button onclick=\"saveWalletData()\">Save Wallet Data</button>  <button onclick=\"saveWalletJSON()\">Save Wallet JSON</button><hr>";
-                makeQR();
-            });
-        }
-
         function newWallet() {
             // Get parameters
             wpass = document.getElementById('password').value;
-            var entropyString ="";
+            var entropyString ="0x";
 
             entropy.forEach( (c) => {
-                entropyString += String.fromCharCode(c);
+                entropyString += ('0' + (c & 0xFF).toString(16)).slice(-2);
             });
             console.log("Entropy : "+ entropyString);
 
+            wallet = ethers.Wallet.createRandom({"extraEntropy": entropyString});
             // Create Random Seed
-            seed = lightwallet.keystore.generateRandomSeed(entropyString);
-            // Show Random Seed
-            document.getElementById('out_seed').innerHTML = "Seed : " + seed;
-
-            // Create Vault
-            lightwallet.keystore.createVault({
-                password: wpass,
-                seedPhrase: seed,
-                //random salt
-                hdPathString: 'm/0\'/0\'/0\''
-            }, function (err, ks) {
-                global_keystore = ks;
-
-                newAddresses();
-            });
+            seed = wallet.mnemonic;
+            priv = wallet.privateKey;
+            addr = wallet.address;
+            json = wallet.encrypt("password")
+                .then( (j) => {
+                    // IT TAKES ABOUR 20 SECONDS...
+                    json = JSON.stringify(JSON.parse(j) , undefined,4);
+                    document.getElementById('out_seed').innerHTML = "Seed : " + seed;
+                    document.getElementById('out_json').innerHTML = "Json : <pre style=\"overflow-x: auto;white-space: pre-wrap;white-space: -moz-pre-wrap;white-space: -pre-wrap;white-space: -o-pre-wrap;word-wrap: break-word;\">" + json + "</pre>";                
+                    document.getElementById('out_address').innerHTML = "Address : " + addr;
+                    document.getElementById('out_priv').innerHTML = "Private key : " + priv;
+                    document.getElementById('out_wpass').innerHTML = "Wallet Password : " + wpass;
+                    document.getElementById('out_json').innerHTML = "Json : <pre style=\"overflow-x: auto;white-space: pre-wrap;white-space: -moz-pre-wrap;white-space: -pre-wrap;white-space: -o-pre-wrap;word-wrap: break-word;\">" + json + "</pre>";
+                    document.getElementById('out_saveAs').innerHTML = "<button onclick=\"saveWalletData()\">Save Wallet Data</button>  <button onclick=\"saveWalletJSON()\">Save Wallet JSON</button><hr>";
+                    makeQR();
+                });
         }
-
     </script>
 
 
