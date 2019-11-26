@@ -94,6 +94,10 @@
           saveAs(blob, filename);
       }
 
+      function creation_progress(p) {
+            document.getElementById('out_creation').innerHTML = "Restoring Wallet : " + parseInt(p * 100) + "%";
+        }
+
 
       function setSeed() {
         seed = seed.trim();
@@ -102,10 +106,12 @@
 
         priv = wallet.privateKey;
         addr = wallet.address;
-        json = wallet.encrypt("password")
+        json = wallet.encrypt(wpass,creation_progress)
             .then( (j) => {
                 // IT TAKES ABOUR 20 SECONDS...
                 json = JSON.stringify(JSON.parse(j) , undefined,4);
+                document.getElementById('input').style.display="none";
+                // Show data
                 document.getElementById('out_seed').innerHTML = "Seed : " + seed;
                 document.getElementById('out_json').innerHTML = "Json : <pre style=\"overflow-x: auto;white-space: pre-wrap;white-space: -moz-pre-wrap;white-space: -pre-wrap;white-space: -o-pre-wrap;word-wrap: break-word;\">" + json + "</pre>";                
                 document.getElementById('out_address').innerHTML = "Address : " + addr;
@@ -122,21 +128,22 @@
 
     <h1>Restore Wallet from Seed</h1>
 
-    <h2>Restore Wallet</h2>
-    <div>
-      Copy here the 12 words of your seed <br>
-      <input id="seed" size="80" type="text" value="" onkeydown="countWords()" onblur="countWords()" onpaste="countWords()"/>
+    <div id="input">
+        <h2>Restore Wallet</h2>
+        Copy here the 12 words of your seed <br>
+        <input id="seed" size="80" type="text" value="" onkeydown="countWords()" onblur="countWords()" onpaste="countWords()"/>
+        <p></p>
+        <div>
+          Input your <b>new</b> password here. Must be at least 12 characters and you MUST write this down and store it safely.<br>
+          <input id="password" placeholder="Type your password here" size="80" type="text" onkeydown="checkPassword()"/>
+          <div id="pwstrength">&nbsp;</div>
+        </div>
+      <p></p>
+      <button id="btn_restore" disabled onclick="setSeed()">Restore wallet from Seed</button>    
+      <div id="out_creation"></div>   
     </div>
-    <p></p>
-    <div>
-      Input your password here. Must be at least 12 characters and you MUST write this down and store it safely.<br>
-      <input id="password" placeholder="Type your password here" size="80" type="text" onkeydown="checkPassword()"/>
-      <div id="pwstrength">&nbsp;</div>
-    </div>
-    <p></p>
-    <button id="btn_restore" disabled onclick="setSeed()">Restore wallet from Seed</button>
-    <p></p>
-
+    
+    <hr>
     <div id="out_seed"></div>
     <div id="out_address"></div>
     <div id="out_priv"></div>
