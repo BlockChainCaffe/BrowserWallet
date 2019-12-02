@@ -4,10 +4,11 @@
         <script charset="utf-8" src="../dist/ethers-v4.min.js" type="text/javascript"></script>
         <script type="text/javascript" src="../dist/FileSaver.js"></script>
         <script type="text/javascript" src="../dist/qrcode.js"></script>
+        <!-- <script type="text/javascript" src="../dist/web3.min.js"></script> -->
+        
         <script>
 
             // ---- GLOBALS ----------------------------------------------------------------------------------------
-            var passOK = false;
 
             // Wallet parameters
             var wallet;
@@ -18,8 +19,47 @@
             var json;
             var reader = new FileReader();
 
+            var provider;
+
             // ---- FUNCTIONS --------------------------------------------------------------------------------------
             
+            function selectProvider() {
+                var sel = document.f1.select_provider.value;
+                document.getElementById('out_provider').innerHTML = sel;
+                console.log(sel);
+                provider = "";
+                switch (sel)
+                {
+                    // case "M" : 
+                    //     provider = new ethers.providers.Web3Provider(web3.currentProvider);
+                    //     break;
+                    // case "I" : 
+                    //     provider = new ethers.providers.IpcProvider("/home/quadrans/.quadrans/geth.ipc");
+                    //     break;
+                    // case "T" : 
+                    //     provider = new ethers.providers.IpcProvider("/home/quadrans/.quadrans/testnet/geth.ipc");
+                    //     break;
+                    case "R" : 
+                        provider = new ethers.providers.JsonRpcProvider("http://164.68.121.219:8545"
+                            // { "url" : "http://164.68.121.219:8545",
+                            // "allowInsecure" : true, }
+                            );
+                        break;
+                    case "L" : 
+                        // THIS WORKS AND RETURNS CORRECT BALANCE VALUES !!!
+                        provider = new ethers.providers.JsonRpcProvider("http://localhost:8545");
+                        break;
+                }
+                
+                // provider = ethers.getDefaultProvider('homestead');
+                // console.log (typeof(provider));
+                console.log(provider);
+                // console.log(provider.getNetwork().then((net) => {console.log(net)}));
+                provider.getBalance(addr).then((bal) => {console.log(bal)});
+                provider.getBalance("0x55331412dd110E0914bcFB7C56e9b58c48798745").then((bal) => {console.log(ethers.utils.formatEther(bal))});
+                provider.getBlockNumber().then((n) => {console.log(n)});
+            }
+
             function creation_progress(p) {
                 document.getElementById('out_creation').innerHTML = "Restoring Wallet : " + parseInt(p * 100) + "%";
             }
@@ -34,6 +74,7 @@
                     // get keystore from json
                     ethers.Wallet.fromEncryptedJson(json,wpass,creation_progress)
                         .then( (w) => {
+                            // get wallet parameters
                             wallet = w;
                             seed = wallet.mnemonic;
                             priv = wallet.privateKey;
@@ -47,8 +88,6 @@
                         });
                 }
             }
-
-
         </script>
 
         <h1>Use Wallet from JSON</h1>
@@ -70,6 +109,32 @@
         <hr>
 
         <div id="out_address"></div>
+        <div id="out_balance"></div>
+
+        <div id="div_provider" style="display: block" onchange="selectProvider()">
+            <form name="f1">
+                <select name="select_provider">
+                    <option>Select your provider...</option>
+                    <option value="M">Metamask</option>
+                    <option value="I">Local IPC Mainnet</option>
+                    <option value="T">Local IPC Testnet</option>
+                    <option value="L">Local RPC</option>
+                    <option value="R">Remote RPC</option>
+                </select>   
+                <div id="out_provider"></div>
+            </form>
+        </div>
 
     </body>
 </html>
+
+
+<!-- 
+
+// This only works on JsonRpcProviders, and returns a JsonRpcSigner
+const signer = provider.getSigner();
+const resp = signer.sendTransaction(tx);
+
+
+
+ -->
