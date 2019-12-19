@@ -101,11 +101,13 @@
             async function  notarize() {
                 var contract_abi ='[{"constant": false,"inputs": [{"name": "_hash","type": "bytes32"},{"name": "_email","type": "string"},{"name": "_storage","type": "string"}],"name": "doLog","outputs": [],"payable": false,"stateMutability": "nonpayable","type": "function"},{"inputs": [],"payable": false,"stateMutability": "nonpayable","type": "constructor"},{"anonymous": false,"inputs": [{"indexed": true,"name": "_hash","type": "bytes32"},{"indexed": false,"name": "_email","type": "string"},{"indexed": false,"name": "_storage","type": "string"}],"name": "logData","type": "event"}]';
                 var contract_address = "0x8258f4dea122619198ab9c8a42e7e882cb148396";
+                w1 = wallet.connect(provider);
+                console.log("w1 = "+w1);
 
-                var contract = new ethers.Contract(contract_address, contract_abi, provider);
-                var contractWithSigner = contract.connect(wallet);
+                // var contract = new ethers.Contract(contract_address, contract_abi, provider);
+                // var contractWithSigner = contract.connect(wallet);
                 // ... OR ...
-                // let contractWithSigner = new Contract(contractAddress, abi, wallet)                
+                let contractWithSigner = new ethers.Contract(contract_address, contract_abi, w1);
                 console.log(contractWithSigner);
                 var tx = await contractWithSigner.doLog( document.getElementById('hash').value ,"test JS","ethers");
                 console.log(tx);
@@ -152,9 +154,11 @@
         </div>
         <button id="btn_tx" onclick="callTX()">Get date</button> <div id="out_Date"></div>
         <p>
-        <input id="hash" placeholder="Type a hash here" size="80" type="text" /><br>
-        <button id="btn_notarie" onclick="notarize()">Notarize</button> 
-        <div id="out_notarize"></div>
+        <div id="div_notarize">
+            <input id="hash" placeholder="Type a hash here" size="80" type="text" /><br>
+            <button id="btn_notarie" onclick="notarize()">Notarize</button> 
+            <div id="out_notarize"></div>
+        </div>
     </body>
 </html>
 
