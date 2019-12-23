@@ -99,21 +99,99 @@
             }
 
             async function  notarize() {
-                var contract_abi ='[{"constant": false,"inputs": [{"name": "_hash","type": "bytes32"},{"name": "_email","type": "string"},{"name": "_storage","type": "string"}],"name": "doLog","outputs": [],"payable": false,"stateMutability": "nonpayable","type": "function"},{"inputs": [],"payable": false,"stateMutability": "nonpayable","type": "constructor"},{"anonymous": false,"inputs": [{"indexed": true,"name": "_hash","type": "bytes32"},{"indexed": false,"name": "_email","type": "string"},{"indexed": false,"name": "_storage","type": "string"}],"name": "logData","type": "event"}]';
-                var contract_address = "0x8258f4dea122619198ab9c8a42e7e882cb148396";
-                w1 = wallet.connect(provider);
-                console.log("w1 = "+w1);
+                var contract_abi ='[{"inputs": [],"payable": false,"stateMutability": "nonpayable","type": "constructor"},{"anonymous": false,"inputs": [{"indexed": false,"internalType": "string","name": "_s","type": "string"},{"indexed": false,"internalType": "address","name": "_addr","type": "address"}],"name": "report","type": "event"},{"constant": true,"inputs": [],"name": "get","outputs": [{"internalType": "string","name": "","type": "string"}],"payable": false,"stateMutability": "view","type": "function"},{"constant": false,"inputs": [{"internalType": "string","name": "_s","type": "string"}],"name": "set","outputs": [],"payable": false,"stateMutability": "nonpayable","type": "function"}]';
+                var contract_address = "0x12C67Ba6AF1AeD8dC58c8337c2100789DfFb02A9";
+                
+                // Method 1
+                // w1 = wallet.connect(provider);
+                // console.log("w1 = " + JSON.stringify(w1) );
+                // let contractWithSigner = new ethers.Contract(contract_address, contract_abi, w1);
+                // console.log(contractWithSigner);
+                // var tx = await contractWithSigner.set( document.getElementById('hash').value );
 
-                // var contract = new ethers.Contract(contract_address, contract_abi, provider);
-                // var contractWithSigner = contract.connect(wallet);
-                // ... OR ...
-                let contractWithSigner = new ethers.Contract(contract_address, contract_abi, w1);
-                console.log(contractWithSigner);
-                var tx = await contractWithSigner.doLog( document.getElementById('hash').value ,"test JS","ethers");
-                console.log(tx);
-                console.log(tx.hash);
-                await tx.wait();
-                document.getElementById('hash').innerHTML = tx;
+                // Method 2
+                // w1 =  new ethers.Wallet(priv, provider);
+                // let contract = new ethers.Contract(contract_address, contract_abi, w1);
+                // let c1 = contract.connect(w1);
+                // options = {
+                //     gasLimit: 1500000,
+                //     gasPrice: 2
+                // }
+                // var tx = await c1.set( document.getElementById('hash').value, options );
+                // console.log(tx);
+                // document.getElementById('hash').innerHTML = tx;
+
+                // Getting a grasp....
+
+                // This way WORKS if:
+                // - json is in keystore folder of IPC node
+                // - wallet is unlocked
+                // Not very desirable, for my purpouses. 
+                console.log("-1-------------------------------");
+                w1 =  new ethers.Wallet(priv, provider);
+                console.log(w1);
+                provider.listAccounts().then((a)=>{ console.log(a) });
+                sig = provider.getSigner(addr);
+                console.log(sig);
+                unlock = await sig.unlock(wpass);
+                if (unlock) {   
+                    contract = new ethers.Contract(contract_address, contract_abi, sig);
+                    console.log(contract);
+                    options = {
+                        gasLimit: 1500000,
+                        gasPrice: 2
+                    }
+                    var tx = await contract.set( document.getElementById('hash').value, options );
+                    console.log(tx);
+                } else {
+                    console.log ("ERROR: Could not unlock signer wallet!");
+                }
+
+                // Test 2: 
+                // Using advanced IPC methods enabled on the node with
+                // --rpcapi="db,eth,net,web3,personal,web3" --allow-insecure-unlock'
+                // console.log("-2-------------------------------");
+                // w1 =  new ethers.Wallet(priv, provider);
+                // sig = provider.getSigner(addr);
+                // contract = new ethers.Contract(contract_address, contract_abi, sig);
+                // console.log(contract);
+                // options = {
+                //     gasLimit: 1500000,
+                //     gasPrice: 2
+                // }                
+                // var tx = await contract.set( document.getElementById('hash').value, options );
+                // console.log(tx);
+                // sig.sendTransaction(tx).then( (rx) => {
+                //     console.log(rx);
+                // });
+
+                /* Hypotesis (Does not work, always needs JSON on node)
+                w1 =  new ethers.Wallet(priv, provider);
+                // signer = provider.getSigner(addr);
+                contract = new ethers.Contract(contract_address, contract_abi, w1);
+
+                // Manually compose data
+                // txdata = ethers.utils.hexDataSlice(ethers.utils.id('set(string)'), 0, 4);
+                iface = new ethers.utils.Interface(contract_abi);
+                args = Object.values({_s:"AAZZ"})
+                txdata = iface.functions.set.encode(args);
+
+                signonce = await w1.getTransactionCount()
+                tx = {
+                    to : contract_address,
+                    gasLimit : 1500000,
+                    gasPrice : 2,
+                    nonce : signonce,
+                    data : txdata,
+                    value : 0,
+                    chainId : 3
+                };
+                console.log("tx: ",tx);
+                stx = await w1.sign(tx);
+                console.log("stx: ",stx);
+                */ 
+
+
             }
 
         </script>
@@ -130,7 +208,7 @@
                 <div id="pwstrength">&nbsp;</div>
             </div>
             <p></p>
-            <button id="btn_restore" onclick="importJ()">Restore wallet from Seed</button>    
+            <button id="btn_restore" onclick="importJ()">Restore wallet from JSON file</button>    
             <div id="out_creation"></div>   
         </div>
         
@@ -162,13 +240,3 @@
     </body>
 </html>
 
-
-<!-- 
-
-// This only works on JsonRpcProviders, and returns a JsonRpcSigner
-const signer = provider.getSigner();
-const resp = signer.sendTransaction(tx);
-
-
-
- -->
