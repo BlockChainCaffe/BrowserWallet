@@ -4,7 +4,7 @@
         <script charset="utf-8" src="../dist/ethers-v4.min.js" type="text/javascript"></script>
         <script type="text/javascript" src="../dist/FileSaver.js"></script>
         <script type="text/javascript" src="../dist/qrcode.js"></script>
-        <!-- <script type="text/javascript" src="../dist/web3.min.js"></script> -->
+        <script type="text/javascript" src="../dist/web3.min.js"></script>
         
         <script>
 
@@ -17,13 +17,14 @@
             var addr;
             var priv;
             var json;
+            var chainId;
             var reader = new FileReader();
 
             var provider;
 
             // ---- FUNCTIONS --------------------------------------------------------------------------------------
             
-            function selectProvider() {
+            async function selectProvider() {
                 var sel = document.f1.select_provider.value;
                 switch (sel)
                 {
@@ -40,19 +41,21 @@
                     case "R" : 
                         provider = new ethers.providers.JsonRpcProvider("http://164.68.121.219:8545");
                         // provider = new ethers.providers.JsonRpcProvider({ "url" : "http://164.68.121.219:8545", "allowInsecure" : true, });
-                        document.getElementById('out_provider').innerHTML = "Remote";
+                        document.getElementById('out_provider').innerHTML = "Remote<br>";
                         break;
                     case "L" : 
                         provider = new ethers.providers.JsonRpcProvider("http://localhost:8545");
-                        document.getElementById('out_provider').innerHTML = "Local";
+                        document.getElementById('out_provider').innerHTML = "Local<br>";
                         break;
                 }
                 
                 console.log(provider);
                 provider.getBalance(addr).then((bal) => { document.getElementById('out_balance').innerHTML = "Balance : "+ethers.utils.formatEther(bal)});
                 provider.getBalance("0x55331412dd110E0914bcFB7C56e9b58c48798745").then((bal) => {console.log(ethers.utils.formatEther(bal))});
-                provider.getNetwork().then((n) => { document.getElementById('out_provider').innerHTML += JSON.stringify(n)});
-                provider.getBlockNumber().then((n) => { document.getElementById('out_provider').innerHTML += "Blocks : "+ n });
+                provider.getBlockNumber().then((n) => { document.getElementById('out_provider').innerHTML += "Blocks : "+ n +"<br>"});
+                net = await provider.getNetwork();
+                document.getElementById('out_provider').innerHTML += JSON.stringify(net)+"<br>";
+                chainId = net.chainId;
             }
 
             function creation_progress(p) {
@@ -103,6 +106,7 @@
                 var contract_address = "0x12C67Ba6AF1AeD8dC58c8337c2100789DfFb02A9";
                 
                 // Method 1
+                // console.log("-2-------------------------------");
                 // w1 = wallet.connect(provider);
                 // console.log("w1 = " + JSON.stringify(w1) );
                 // let contractWithSigner = new ethers.Contract(contract_address, contract_abi, w1);
@@ -110,6 +114,7 @@
                 // var tx = await contractWithSigner.set( document.getElementById('hash').value );
 
                 // Method 2
+                // console.log("-3-------------------------------");
                 // w1 =  new ethers.Wallet(priv, provider);
                 // let contract = new ethers.Contract(contract_address, contract_abi, w1);
                 // let c1 = contract.connect(w1);
@@ -127,30 +132,31 @@
                 // - json is in keystore folder of IPC node
                 // - wallet is unlocked
                 // Not very desirable, for my purpouses. 
-                console.log("-1-------------------------------");
-                w1 =  new ethers.Wallet(priv, provider);
-                console.log(w1);
-                provider.listAccounts().then((a)=>{ console.log(a) });
-                sig = provider.getSigner(addr);
-                console.log(sig);
-                unlock = await sig.unlock(wpass);
-                if (unlock) {   
-                    contract = new ethers.Contract(contract_address, contract_abi, sig);
-                    console.log(contract);
-                    options = {
-                        gasLimit: 1500000,
-                        gasPrice: 2
-                    }
-                    var tx = await contract.set( document.getElementById('hash').value, options );
-                    console.log(tx);
-                } else {
-                    console.log ("ERROR: Could not unlock signer wallet!");
-                }
+                // console.log("-1-------------------------------");
+                // w1 =  new ethers.Wallet(priv, provider);
+                // console.log(w1);
+                // provider.listAccounts().then((a)=>{ console.log(a) });
+                // sig = provider.getSigner(addr);
+                // console.log(sig);
+                // // Unlock does not work because is search for eth.accounts in the node
+                // unlock = await sig.unlock(wpass);
+                // if (unlock) {   
+                //     contract = new ethers.Contract(contract_address, contract_abi, sig);
+                //     console.log(contract);
+                //     options = {
+                //         gasLimit: 1500000,
+                //         gasPrice: 2
+                //     }
+                //     var tx = await contract.set( document.getElementById('hash').value, options );
+                //     console.log(tx);
+                // } else {
+                //     console.log ("ERROR: Could not unlock signer wallet!");
+                // }
 
                 // Test 2: 
                 // Using advanced IPC methods enabled on the node with
                 // --rpcapi="db,eth,net,web3,personal,web3" --allow-insecure-unlock'
-                // console.log("-2-------------------------------");
+                // console.log("-4-------------------------------");
                 // w1 =  new ethers.Wallet(priv, provider);
                 // sig = provider.getSigner(addr);
                 // contract = new ethers.Contract(contract_address, contract_abi, sig);
@@ -165,32 +171,42 @@
                 //     console.log(rx);
                 // });
 
-                /* Hypotesis (Does not work, always needs JSON on node)
+                // Hypotesis (Does not work, always needs JSON on node)
                 w1 =  new ethers.Wallet(priv, provider);
                 // signer = provider.getSigner(addr);
                 contract = new ethers.Contract(contract_address, contract_abi, w1);
 
                 // Manually compose data
-                // txdata = ethers.utils.hexDataSlice(ethers.utils.id('set(string)'), 0, 4);
                 iface = new ethers.utils.Interface(contract_abi);
                 args = Object.values({_s:"AAZZ"})
                 txdata = iface.functions.set.encode(args);
-
-                signonce = await w1.getTransactionCount()
+                console.log(txdata);
+                signonce = await w1.getTransactionCount();
                 tx = {
-                    to : contract_address,
-                    gasLimit : 1500000,
-                    gasPrice : 2,
-                    nonce : signonce,
-                    data : txdata,
-                    value : 0,
-                    chainId : 3
+                    "from" : addr,
+                    "to" : contract_address,
+                    "gasLimit" : 1500000,
+                    "gasPrice" : 2,
+                    "nonce" : signonce,
+                    "data" : txdata,
+                    "value" : 0,
+                    // "chainId" : chainId
                 };
                 console.log("tx: ",tx);
-                stx = await w1.sign(tx);
-                console.log("stx: ",stx);
-                */ 
 
+                web3 = new Web3( new Web3.providers.HttpProvider("http://localhost:8545"));
+                
+                // stx2 = await w1.sign(tx);
+                // console.log("stx-2: ",stx2);
+
+                account = await  web3.eth.accounts.privateKeyToAccount(priv);
+                console.log ("web3addr : "+account);
+                stx1 = await web3.eth.accounts.signTransaction(tx, priv);
+                console.log("stx-1: ",stx1);
+                
+                txid = await web3.eth.sendSignedTransaction(stx1.rawTransaction);
+                // res = await provider.send("eth_sendRawTransaction",[stx]);
+                console.log(txid);
 
             }
 
