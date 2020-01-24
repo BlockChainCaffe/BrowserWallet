@@ -1,0 +1,112 @@
+<html>
+  <body>
+        <script type="text/javascript" src="http://code.jquery.com/jquery-1.11.0.min.js"></script>
+        <script charset="utf-8" src="../../dist/ethers-v4.min.js" type="text/javascript"></script>
+        <script type="text/javascript" src="../../dist/FileSaver.js"></script>
+        <script type="text/javascript" src="../../dist/qrcode.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/babel-polyfill/dist/polyfill.min.js"></script> <!-- workaround for web3js error-->
+        <script type="text/javascript" src="../../dist/web3.min.js"></script>
+        
+        <script>
+            // ---- GLOBALS ----------------------------------------------------------------------------------------
+
+            // Wallet parameters
+            var wallet;
+            var wpass;
+            var seed;
+            var addr = "0x1edE0a9D2598D7722468647788257B5F1F94C077";
+            var priv = "0x8bed87544c9434a04b727d482acc618d6e0776f1b8151c137da8254c5d7ec1fe";
+            var json;
+
+            // Chain info
+            var provider;
+            var chainId;
+
+            // Contract Parameters
+            var contract_abi = '[{"constant": true,"inputs": [{"name": "_index","type": "uint256"}],"name": "getListing","outputs": [{"name": "","type": "uint128[]"}],"payable": false,"stateMutability": "view","type": "function"},{"constant": true,"inputs": [{"name": "_addr","type": "address"}],"name": "allowance","outputs": [{"name": "tokens","type": "uint256"},{"name": "expires","type": "uint256"}],"payable": false,"stateMutability": "view","type": "function"},{"constant": true,"inputs": [],"name": "vendingMachine","outputs": [{"name": "","type": "address"}],"payable": false,"stateMutability": "view","type": "function"},{"constant": false,"inputs": [{"name": "_addr","type": "address"},{"name": "_pricing","type": "uint256"}],"name": "setAddressPricing","outputs": [],"payable": false,"stateMutability": "nonpayable","type": "function"},{"constant": false,"inputs": [],"name": "destroy","outputs": [],"payable": false,"stateMutability": "nonpayable","type": "function"},{"constant": false,"inputs": [{"name": "_addr","type": "address"},{"name": "_tokens","type": "uint128"},{"name": "_expires","type": "uint256"}],"name": "grantLicence","outputs": [],"payable": false,"stateMutability": "nonpayable","type": "function"},{"constant": false,"inputs": [{"name": "_addr","type": "address"},{"name": "_function","type": "uint256"}],"name": "validate","outputs": [{"name": "","type": "bool"}],"payable": false,"stateMutability": "nonpayable","type": "function"},{"constant": false,"inputs": [{"name": "_addr","type": "address"}],"name": "burnTokens","outputs": [],"payable": false,"stateMutability": "nonpayable","type": "function"},{"constant": false,"inputs": [{"name": "_addr","type": "address"},{"name": "_date","type": "uint256"}],"name": "setExpires","outputs": [],"payable": false,"stateMutability": "nonpayable","type": "function"},{"constant": false,"inputs": [{"name": "_index","type": "uint256"},{"name": "_prices","type": "uint128[]"}],"name": "setListing","outputs": [],"payable": false,"stateMutability": "nonpayable","type": "function"},{"constant": false,"inputs": [{"name": "_vm","type": "address"}],"name": "setVendingMachine","outputs": [],"payable": false,"stateMutability": "nonpayable","type": "function"},{"constant": false,"inputs": [{"name": "_addr","type": "address"},{"name": "_tip","type": "uint128"}],"name": "addTokens","outputs": [],"payable": false,"stateMutability": "nonpayable","type": "function"},{"inputs": [{"name": "_contractId","type": "bytes8"},{"name": "_mic","type": "address"}],"payable": false,"stateMutability": "nonpayable","type": "constructor"},{"anonymous": false,"inputs": [{"indexed": false,"name": "_addr","type": "address"}],"name": "Granted","type": "event"},{"anonymous": false,"inputs": [{"indexed": false,"name": "_addr","type": "address"},{"indexed": false,"name": "_tokens","type": "uint256"}],"name": "GotTokens","type": "event"},{"anonymous": false,"inputs": [{"indexed": false,"name": "_addr","type": "address"},{"indexed": false,"name": "_date","type": "uint256"}],"name": "Expires","type": "event"},{"anonymous": false,"inputs": [{"indexed": false,"name": "_addr","type": "address"},{"indexed": false,"name": "_index","type": "uint256"}],"name": "PriceListSet","type": "event"},{"anonymous": false,"inputs": [{"indexed": false,"name": "_addr","type": "address"}],"name": "VendimMachine","type": "event"}]';
+            var contract_address ="0x740F28F042a78Ac6B321A7dBd4DdFbfeDDEDead7";
+
+            // TX parameters
+            var stx1;
+            var timeout;
+
+
+            // var reader = new FileReader();
+
+
+            // ---- FUNCTIONS --------------------------------------------------------------------------------------
+
+            async function setProvider() {
+                provider = new ethers.providers.JsonRpcProvider("http://164.68.121.219:8545");
+                document.getElementById('out_provider').innerHTML = "Remote<br>";
+                console.log(provider);
+                provider.getBalance(addr).then((bal) => { document.getElementById('out_balance').innerHTML = "Balance : "+ethers.utils.formatEther(bal)});
+                provider.getBlockNumber().then((n) => { document.getElementById('out_provider').innerHTML += "Blocks : "+ n +"<br>"});
+                net = await provider.getNetwork();
+                document.getElementById('out_provider').innerHTML += JSON.stringify(net)+"<br>";
+                chainId = net.chainId;
+            }
+
+            async function getBalance() {
+                var contract = new ethers.Contract(contract_address, contract_abi, provider);
+                contract.balance();
+            }
+
+            function getReceipt() {
+                let c = true;
+                console.log("looping...");
+                web3.eth.getTransactionReceipt(stx1.transactionHash)
+                .then( (x) => {
+                        if (x) {
+                            c=false;
+                            document.getElementById('out_notarize').innerHTML += "Transaction Receipt: " + JSON.stringify(x) + "<br>";
+                            console.log(x);
+                        } else {
+                            timeout = window.setTimeout(getReceipt,1000);
+                        }
+                    });
+            }
+
+            async function giveTokens() {
+                ;
+            }
+
+            async function burnTokens() {
+                ;
+            }
+        </script>
+
+
+        <h1 align="center">FDC Utiltiy Token vendin machine</h1>
+        <h2 align="center">testenet platform</h2>
+
+        <b>Wallet address:</b>
+        <p></p>
+        <input id="hash" placeholder="Type an address here" size="60" type="text" />   <button id="btn_notarie" onclick="getBalance()">Get Balance</button>
+        <p></p>
+        <hr>
+        <p></p>
+        <b>Network</b> :
+        <p>
+            Hereunder the info about the network you are  connected to. It should be networkID=3 and the block number should match the one of the <a href="https://explorer.testnet.quadrans.io/" target="blank">explorer</a><br>
+            <div id="out_net"></div>
+        </p>
+        <hr>
+        <p></p>
+        <b>Balance</b> :
+        <p>
+            Balance of requested address:<br>
+            <div id="out_net"></div>
+        </p>
+        <hr>
+        <p></p>
+        <b>Options</b> :
+        <p>
+            <div id="out_net"></div>
+        </p>
+        <hr>
+    
+
+
+  </body>
+</html>    
