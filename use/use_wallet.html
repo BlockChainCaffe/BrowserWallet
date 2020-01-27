@@ -201,7 +201,6 @@
 
                 // Hypotesis (Does not work, always needs JSON on node)
                 w1 =  new ethers.Wallet(priv, provider);
-                // signer = provider.getSigner(addr);
                 contract = new ethers.Contract(contract_address, contract_abi, w1);
 
                 // Manually compose data
