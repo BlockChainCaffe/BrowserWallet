@@ -189,11 +189,51 @@
                     })
                     .catch( (error) => {
                         document.getElementById('out_res').innerHTML = "<font color=\"#FF000\">"+error+"</font>";
+                        if (error.toString().indexOf("Not licenced") >= 0) {
+                            document.getElementById('btn_grant').disabled = false;
+                            document.getElementById('out_bal').innerHTML += "Tokens left:  (null)<br>Expire time:  (never)<br>Price List number:  (none)<br>";
+                        }
                     })
                     .finally(() => {
                         console.log("");
                     });
             }
+
+
+            async function grantLicence() {
+                var date = new Date();
+                var sec = Math.floor(date.getTime() / 1000);
+                args = Object.values({"_addr":user_wallet, "_tokens": 0, "_expires": sec});
+                w1 =  new ethers.Wallet(priv, provider);
+                contract = new ethers.Contract(contract_address, contract_abi, w1);
+                iface = new ethers.utils.Interface(contract_abi);
+                console.log(iface);
+                txdata = iface.functions.grantLicence.encode(args);
+                console.log(txdata);
+                signonce = await w1.getTransactionCount();
+                tx = {
+                    "from" : addr,
+                    "to" : contract_address,
+                    "gasLimit" : 1500000,
+                    "gasPrice" : 2,
+                    "nonce" : signonce,
+                    "data" : txdata,
+                    "value" : 0,
+                };
+                web3 = new Web3( new Web3.providers.HttpProvider(rpcEndpoint));
+                account = await  web3.eth.accounts.privateKeyToAccount(priv);
+                stx1 = await web3.eth.accounts.signTransaction(tx, priv);
+                document.getElementById('out_res').innerHTML = "Transaction Hash: <a href=\"https://explorer.testnet.quadrans.io/tx/"+stx1.transactionHash+"\">"+stx1.transactionHash+"</a><br>";
+                web3.eth.sendSignedTransaction(stx1.rawTransaction);
+                timeout = window.setTimeout(getReceipt,1000);
+
+                // switch buttons
+                document.getElementById('btn_std').disabled = true;
+                document.getElementById('btn_chd').disabled = false;
+                document.getElementById('opt_exp').readOnly = false;
+                document.getElementById('btn_grant').disabled = true;
+            }
+
 
             async function reset() {
                 document.getElementById('out_bal').innerHTML = "";
@@ -206,6 +246,7 @@
                 document.getElementById('btn_brn').disabled = true;
                 document.getElementById('btn_tok').disabled = true;
                 document.getElementById('btn_res').disabled = true;
+                document.getElementById('btn_grant').disabled = true;
                 
                 document.getElementById('opt_exp').value = "";
                 document.getElementById('opt_exp').placeholder = "YYYY-MM-DD HH:mm";
@@ -220,7 +261,10 @@
 
         <b>Wallet address:</b>
         <p></p>
-        <input id="user_wallet" placeholder="Type an address here" size="60" type="text" />   <button id="btn_bal" onclick="getBalance()">Get Balance</button>   <button id="btn_res" onclick="reset()" disabled="true">Reset</button> 
+        <input id="user_wallet" placeholder="Type an address here" size="60" type="text" />   
+            <button id="btn_bal" onclick="getBalance()">Get Balance</button>   
+            <button id="btn_res" onclick="reset()" disabled="true">Reset</button>
+            <button id="btn_grant" onclick="grantLicence()" disabled="true">Grant Licence</button>
         <p></p>
         <hr>
         <p></p>
